@@ -6,8 +6,35 @@ const path = require('path');
 
 const app = express();
 
+// Allow specific origins (replace with your Vercel URL)
+const allowedOrigins = [
+  'https://book-market-mwnykq0gh-kalyans-projects-d61236cc.vercel.app',
+  'http://localhost:5173' // Keep for local development
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log('Incoming Origin:', origin); // Debug log
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('Blocked Origin:', origin); // Debug log
+      const msg = 'CORS Policy Rejection: ' + origin;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
 // Middleware
-app.use(cors());
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -40,30 +67,7 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-const cors = require('cors');
-
-// Allow specific origins (replace with your Vercel URL)
-const allowedOrigins = [
-  'https://book-market-mwnykq0gh-kalyans-projects-d61236cc.vercel.app',
-  'http://localhost:5173' // Keep for local development
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
 
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-});
+
+
