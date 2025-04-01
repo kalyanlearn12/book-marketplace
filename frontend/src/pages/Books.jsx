@@ -22,9 +22,9 @@ const Books = () => {
     const fetchBooks = async () => {
       console.log("Attempting to fetch books...");
       try {
-        const response = await axios.get('http://localhost:5000/api/books');
+        const response = await bookService.getBooks();
         console.log("API Response:", response);
-        setBooks(response.data);
+        setBooks(response);
       } catch (error) {
         console.error("API Error:", error);
       }
