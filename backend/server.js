@@ -64,20 +64,74 @@ app.get('/api/cors-check', (req, res) => {
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database connection
-// Add this at the top
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB Connected to Render'))
-.catch(err => console.error('MongoDB Connection Error:', err));
 
-// Auto-reconnect
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected - reconnecting...');
-  mongoose.connect(process.env.MONGODB_URI);
+const RETRY_DELAY_BASE_MS = 1000; // Start with 1 second delay
+const MAX_RETRY_DELAY_MS = 30000; // Max 30 seconds between retries
+let retryCount = 0;
+
+const connectDB = async () => {
+  // Use original SRV URI if available, otherwise fallback to local
+  const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/book-exchange';
+  
+  const options = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Faster initial failure detection
+    socketTimeoutMS: 30000,
+    connectTimeoutMS: 10000,
+    retryWrites: true,
+    w: 'majority'
+  };
+
+  try {
+    console.log(`Attempting MongoDB connection (Attempt ${retryCount + 1})...`);
+    
+    await mongoose.connect(connStr, options);
+    
+    retryCount = 0; // Reset on successful connection
+    console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
+    console.log(`   Database: ${mongoose.connection.name}`);
+    console.log(`   State: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+
+  } catch (err) {
+    retryCount++;
+    const delayMs = Math.min(RETRY_DELAY_BASE_MS * Math.pow(2, retryCount), MAX_RETRY_DELAY_MS);
+    
+    console.error(`❌ Connection failed (Attempt ${retryCount}):`, {
+      error: err.message,
+      stack: err.stack,
+      nextRetry: `${delayMs / 1000} seconds`,
+      connectionString: connStr.replace(/:[^@]+@/, ':*****@') // Hide password
+    });
+
+    // Exponential backoff with jitter
+    const jitter = delayMs * 0.2 * Math.random();
+    setTimeout(connectDB, delayMs + jitter);
+  }
+};
+
+// Connection event listeners
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose default connection open');
 });
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose connection disconnected');
+  connectDB(); // Auto-reconnect
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Mongoose connection error:', err);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('Mongoose default connection disconnected through app termination');
+  process.exit(0);
+});
+
+module.exports = connectDB;
 
 // Routes
 const authRoutes = require('./routes/auth');
