@@ -1,49 +1,52 @@
-require('dotenv').config(); // Add this at the top of seed.js
+require('dotenv').config();
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const Book = require('./models/Book');
 const User = require('./models/User');
 
-// Add connection error handling
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB for seeding'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-const seedDatabase = async () => {
+const seedDB = async () => {
   try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('DB Connected for seeding');
+
     // Clear existing data
     await Book.deleteMany({});
     await User.deleteMany({});
 
-    const user = await User.create({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: 'password123' // Will be hashed automatically
+    // Create owner user
+    const hashedPassword = await bcrypt.hash('password123', 10);
+    const owner = await User.create({
+      username: "bookadmin",
+      email: "admin@bookexchange.com",
+      password: hashedPassword
     });
 
-    await Book.create([
+    // Create books with owner reference
+    const sampleBooks = [
       {
-        title: 'The Great Gatsby',
-        author: 'F. Scott Fitzgerald',
-        owner: user._id,
+        title: "The Great Gatsby",
+        author: "F. Scott Fitzgerald",
+        condition: "Good",
+        price: 12.99,
         forSale: true,
-        price: 10.99,
-        condition: 'Good'
+        owner: owner._id  // Reference the created user
       },
       {
-        title: 'To Kill a Mockingbird',
-        author: 'Harper Lee',
-        owner: user._id,
+        title: "To Kill a Mockingbird",
+        author: "Harper Lee",
+        condition: "Like New",
         forLend: true,
-        condition: 'Like New'
+        owner: owner._id  // Reference the created user
       }
-    ]);
+    ];
 
+    await Book.insertMany(sampleBooks);
     console.log('Database seeded successfully!');
+    process.exit(0);
   } catch (err) {
     console.error('Seeding error:', err);
-  } finally {
-    mongoose.disconnect();
+    process.exit(1);
   }
 };
 
-seedDatabase();
+seedDB();
