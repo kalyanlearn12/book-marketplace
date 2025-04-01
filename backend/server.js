@@ -65,9 +65,19 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Add this at the top
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB Connected to Render'))
+.catch(err => console.error('MongoDB Connection Error:', err));
+
+// Auto-reconnect
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected - reconnecting...');
+  mongoose.connect(process.env.MONGODB_URI);
+});
 
 // Routes
 const authRoutes = require('./routes/auth');
