@@ -40,9 +40,30 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// In backend/server.js
-const corsOptions = {
-  origin: 'http://localhost:5173', // Your frontend URL
+const cors = require('cors');
+
+// Allow specific origins (replace with your Vercel URL)
+const allowedOrigins = [
+  'https://book-market-mwnykq0gh-kalyans-projects-d61236cc.vercel.app',
+  'http://localhost:5173' // Keep for local development
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
-};
-app.use(cors(corsOptions));
+}));
+
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
