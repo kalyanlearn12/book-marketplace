@@ -8,20 +8,36 @@ const app = express();
 
 // Allow specific origins (replace with your Vercel URL)
 const allowedOrigins = [
-  'https://book-market-mwnykq0gh-kalyans-projects-d61236cc.vercel.app',
-  'http://localhost:5173' // Keep for local development
+  'https://book-market-kalyanlearn12-kalyans-projects-d61236cc.vercel.app',
+  'http://localhost:5173', // Keep for local development,
+  'https://book-market.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     console.log('Incoming Origin:', origin); // Debug log
+
     if (!origin) return callback(null, true);
+
+    if (allowedOrigins.some(allowed => {
+      return origin === allowed || 
+             origin.startsWith('https://book-market-') || // All Vercel preview URLs
+             origin.endsWith('.vercel.app');
+    })) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.indexOf(origin) === -1) {
       console.log('Blocked Origin:', origin); // Debug log
       const msg = 'CORS Policy Rejection: ' + origin;
       return callback(new Error(msg), false);
     }
-    return callback(null, true);
+
+
+    console.log('Blocked Origin:', origin);
+    return callback(new Error('Not allowed by CORS'), false);
+
+
   },
   credentials: true
 }));
@@ -32,6 +48,16 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
+
+// 4. Debug endpoint
+app.get('/api/cors-check', (req, res) => {
+  res.json({
+    headers: req.headers,
+    allowedOrigins,
+    yourOrigin: req.headers.origin
+  });
+});
+
 
 // Middleware
 
