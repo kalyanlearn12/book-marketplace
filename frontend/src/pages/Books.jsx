@@ -1,5 +1,4 @@
 import React from 'react'; // Add this import
-import axios from 'axios'; // Add this import
 import { useState, useEffect } from 'react';
 import { 
   Container, 

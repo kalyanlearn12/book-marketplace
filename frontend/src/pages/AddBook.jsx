@@ -1,4 +1,3 @@
-// frontend/src/pages/Register.jsx
 import React from 'react';
 
 const Register = () => {
