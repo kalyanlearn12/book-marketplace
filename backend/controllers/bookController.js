@@ -52,9 +52,11 @@ exports.getBooks = async (req, res) => {
     if (type === 'sale') query.forSale = true;
     if (type === 'lend') query.forLend = true;
 
+    console.log('Query:', query); // Debugging line
     const books = await Book.find(query).populate('owner', 'username');
     res.json(books);
   } catch (err) {
+    console.error('Error fetching books:', err); // Debugging line
     res.status(500).json({ message: err.message });
   }
 };

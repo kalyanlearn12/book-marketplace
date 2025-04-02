@@ -6,6 +6,8 @@ const path = require('path');
 
 const app = express();
 
+
+//CORS Starts
 // Allow specific origins (replace with your Vercel URL)
 const allowedOrigins = [
   'https://book-market-kalyanlearn12-kalyans-projects-d61236cc.vercel.app',
@@ -51,18 +53,26 @@ app.use((req, res, next) => {
 
 // 4. Debug endpoint
 app.get('/api/cors-check', (req, res) => {
+
+  console.log('cors check', cors);
   res.json({
     headers: req.headers,
     allowedOrigins,
     yourOrigin: req.headers.origin
   });
 });
+//CORS Ends
 
-
-// Middleware
-
+// Middleware Starts
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Middleware Ends
+
+
+// Database Connection Starts
+/*mongoose.connect(process.env.MONGODB_URI)
+   .then(() => console.log('Connected to MongoDB'))
+   .catch(err => console.error('MongoDB connection error:', err));*/
 
 
 const RETRY_DELAY_BASE_MS = 1000; // Start with 1 second delay
@@ -71,7 +81,7 @@ let retryCount = 0;
 
 const connectDB = async () => {
   // Use original SRV URI if available, otherwise fallback to local
-  const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/book-exchange';
+  const connStr = process.env.MONGODB_URI;
   
   const options = {
     useNewUrlParser: true,
@@ -84,6 +94,7 @@ const connectDB = async () => {
   };
 
   try {
+    console.log(`MongoDB URI: ${connStr.replace(/:[^@]+@/, ':*****@')}`); // Hide password
     console.log(`Attempting MongoDB connection (Attempt ${retryCount + 1})...`);
     
     await mongoose.connect(connStr, options);
@@ -132,6 +143,9 @@ process.on('SIGINT', async () => {
 });
 
 module.exports = connectDB;
+// Database Connection Ends
+
+connectDB(); // Initialize connection
 
 // Routes
 const authRoutes = require('./routes/auth');
